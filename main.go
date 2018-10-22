@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"sort"
 	"time"
@@ -46,7 +47,7 @@ func gui(server *server.SSH, events chan string) {
 	started := time.Now()
 	// TODO: make sure items in this list are
 	// removed when clients disconnect
-	lastWritten := make(map[string]int)
+	lastWritten := make(map[string]uint64)
 
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
@@ -70,10 +71,10 @@ func gui(server *server.SSH, events chan string) {
 
 				// update active connections
 				activeConnView.Clear()
-				activeBytes := 0
+				activeBytes := uint64(0)
 				for _, item := range s.Connections {
 					written := item.Written()
-					perSecond := 0
+					perSecond := uint64(0)
 
 					if last, exists := lastWritten[item.Remote]; exists {
 						perSecond = written - last
@@ -119,9 +120,17 @@ func gui(server *server.SSH, events chan string) {
 
 	// This goroutine receives events
 	go func() {
+		logfile, err := os.OpenFile("./idiots.log", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			log.Panicln(err)
+		}
+		defer logfile.Close()
+		logger := log.New(logfile, "", 0)
+
 		eventSlice := make([]string, 0, 50)
 		for {
 			event := <-events
+			logger.Println(event)
 			eventSlice = append(eventSlice, event)
 			if len(eventSlice) >= 30 {
 				eventSlice = eventSlice[len(eventSlice)-29 : 30]

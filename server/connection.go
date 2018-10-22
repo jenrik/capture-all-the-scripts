@@ -2,20 +2,19 @@ package server
 
 import (
 	"net"
-	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // Connection wraps net.Conn but counts the total number of written bytes
 type Connection struct {
 	net.Conn
-	sync.Mutex
 
 	Started   time.Time
 	SessionID string
 	Remote    string
 
-	written int
+	written uint64
 }
 
 func (c *Connection) Write(b []byte) (int, error) {
@@ -24,15 +23,10 @@ func (c *Connection) Write(b []byte) (int, error) {
 		return 0, err
 	}
 	n, err := c.Conn.Write(b)
-	c.Lock()
-	c.written += n
-	c.Unlock()
+	atomic.AddUint64(&c.written, uint64(n))
 	return n, err
 }
 
-func (c *Connection) Written() int {
-	c.Lock()
-	value := c.written
-	c.Unlock()
-	return value
+func (c *Connection) Written() uint64 {
+	return atomic.LoadUint64(&c.written)
 }

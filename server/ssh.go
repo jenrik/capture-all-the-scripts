@@ -21,13 +21,13 @@ type SSH struct {
 	lock             sync.RWMutex
 	connections      map[net.Conn]*Connection
 	totalconnections int
-	bytessent        int
+	bytessent        uint64
 }
 
 type State struct {
 	Connections      []*Connection
 	TotalConnections int
-	BytesSent        int
+	BytesSent        uint64
 }
 
 func (s *SSH) State() State {
@@ -135,11 +135,16 @@ func (s *SSH) acceptSSH(nConn net.Conn, config *ssh.ServerConfig) {
 }
 
 func (s *SSH) preparebook(path string) error {
-
-	data, err := ioutil.ReadFile("ebook.txt")
+	/*data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
 	s.banner = string(data)
+	return nil*/
+	b := make([]byte, 1024*1024*10)
+	for i := 0; i < len(b); i++ {
+		b[i] = 'a'
+	}
+	s.banner = string(b)
 	return nil
 }
